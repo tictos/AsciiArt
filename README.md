@@ -5,7 +5,22 @@
 [![Room Database](https://img.shields.io/badge/Room-SQLite_Offline-58A6FF?style=flat-square)](https://developer.android.com/training/data-storage/room)
 [![Design System](https://img.shields.io/badge/Design_System-Terminal_Cyber--Craft-D29922?style=flat-square)](https://m3.material.io)
 
+<p align="center">
+  <img src="docs/screenshots/hero_banner.png" alt="AsciiArt Presentation Banner" width="100%" />
+</p>
+
 > **AsciiArt** est une application mobile Android moderne en mode sombre conçue pour convertir des photos personnelles ou du texte en **ASCII Art haute fidélité**. L'application s'adresse à la fois au grand public (partage visuel sur réseaux sociaux, enregistrement HD local) et aux développeurs (export en code source multi-langages pour CLI, scripts et bannières de terminaux).
+
+---
+
+## 📸 Aperçu & Captures d'Écran
+
+> Placez vos captures d'écran dans le dossier `docs/screenshots/` avec les noms indiqués ci-dessous pour les afficher automatiquement sur GitHub.
+
+| **1. Studio de Conversion** | **2. DevKit Multi-Langages** | **3. Galerie & Inspirations** | **4. Export Graphique & Partage** |
+| :---: | :---: | :---: | :---: |
+| <img src="docs/screenshots/01_studio.png" alt="Studio de Rendu ASCII" width="200"/> | <img src="docs/screenshots/02_devkit.png" alt="DevKit Code Source" width="200"/> | <img src="docs/screenshots/03_gallery.png" alt="Galerie & Modèles" width="200"/> | <img src="docs/screenshots/04_export.png" alt="Export HD & Réseaux" width="200"/> |
+| *Conversion Image & FIGlet en temps réel* | *Génération Python, Rust, TS, Go, C++* | *Historique SQLite & Modèles prêts à l'emploi* | *Rendu HD CRT/OLED & Partage Social* |
 
 ---
 

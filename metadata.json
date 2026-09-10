@@ -1,0 +1,6 @@
+{
+  "name": "AsciiArt",
+  "description": "Studio mobile de conversion haute fidélité d'images et texte en art ASCII avec DevKit multi-langages.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

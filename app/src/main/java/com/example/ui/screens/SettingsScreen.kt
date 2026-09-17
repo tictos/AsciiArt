@@ -280,8 +280,20 @@ fun SettingsScreen(
                             .padding(horizontal = 10.dp, vertical = 6.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Design System", fontSize = 11.sp, color = TextSecondary)
-                        Text("Terminal Cyber-Craft OLED", fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = TerminalGreen)
+                        Text("Moteur de calcul", fontSize = 11.sp, color = TextSecondary)
+                        Text("Coroutines Asynchrones", fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = CyanCyber)
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(SurfaceContainerHigh)
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Licence open-source", fontSize = 11.sp, color = TextSecondary)
+                        Text("Apache 2.0", fontFamily = FontFamily.Monospace, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TerminalGreen)
                     }
                 }
             }

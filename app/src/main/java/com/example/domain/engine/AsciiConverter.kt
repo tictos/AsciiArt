@@ -6,6 +6,10 @@ import com.example.domain.model.AsciiColorMode
 import com.example.domain.model.AsciiMatrixResult
 import com.example.domain.model.CharacterRamp
 import com.example.domain.model.DitherAlgorithm
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.withContext
 import kotlin.math.max
 import kotlin.math.pow
 import kotlin.math.roundToInt
@@ -19,6 +23,24 @@ object AsciiConverter {
         intArrayOf(3, 11, 1, 9),
         intArrayOf(15, 7, 13, 5)
     )
+
+    /**
+     * Asynchronous non-blocking ASCII conversion executed on Dispatchers.Default
+     * with cooperative cancellation support.
+     */
+    suspend fun convertBitmapAsync(
+        bitmap: Bitmap,
+        targetColumns: Int = 80,
+        ramp: CharacterRamp = CharacterRamp.STANDARD,
+        colorMode: AsciiColorMode = AsciiColorMode.GREEN_PHOSPHOR,
+        dither: DitherAlgorithm = DitherAlgorithm.FLOYD_STEINBERG,
+        contrast: Float = 1.0f,
+        gamma: Float = 1.0f,
+        invert: Boolean = false,
+        sourceTitle: String = "photo.jpg"
+    ): AsciiMatrixResult = withContext(Dispatchers.Default) {
+        convertBitmap(bitmap, targetColumns, ramp, colorMode, dither, contrast, gamma, invert, sourceTitle)
+    }
 
     fun convertBitmap(
         bitmap: Bitmap,

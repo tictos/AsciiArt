@@ -1,9 +1,15 @@
 package com.example.domain.engine
 
 import com.example.domain.model.FigletFontType
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.text.Normalizer
 
 object FigletGenerator {
+
+    suspend fun renderAsync(text: String, font: FigletFontType): String = withContext(Dispatchers.Default) {
+        render(text, font)
+    }
 
     /**
      * Renders input text into multi-line ASCII banner art.

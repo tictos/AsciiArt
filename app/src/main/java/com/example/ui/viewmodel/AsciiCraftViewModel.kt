@@ -163,6 +163,10 @@ class AsciiCraftViewModel(application: Application) : AndroidViewModel(applicati
     private val _toastMessage = MutableStateFlow<String?>(null)
     val toastMessage: StateFlow<String?> = _toastMessage.asStateFlow()
 
+    // 13. Asynchronous Execution State
+    private val _isAsyncComputing = MutableStateFlow(false)
+    val isAsyncComputing: StateFlow<Boolean> = _isAsyncComputing.asStateFlow()
+
     val projects: StateFlow<List<AsciiProjectEntity>>
 
     init {
@@ -396,146 +400,165 @@ class AsciiCraftViewModel(application: Application) : AndroidViewModel(applicati
         _toastMessage.value = message
     }
 
+    private var recomputeJob: kotlinx.coroutines.Job? = null
+    private var devCodeJob: kotlinx.coroutines.Job? = null
+
     // --- Core Computation ---
 
     fun recomputeAscii() {
-        viewModelScope.launch(Dispatchers.Default) {
-            val result = if (_inputMode.value == MainInputMode.IMAGE) {
-                val bmp = _sourceBitmap.value ?: SampleImageGenerator.generateCyberPortrait()
-                AsciiConverter.convertBitmap(
-                    bitmap = bmp,
-                    targetColumns = _targetColumns.value,
-                    ramp = _characterRamp.value,
-                    colorMode = _colorMode.value,
-                    dither = _ditherAlgorithm.value,
-                    contrast = _contrast.value,
-                    gamma = _gamma.value,
-                    invert = _invertLuminance.value,
-                    sourceTitle = _sourceFileName.value
-                )
-            } else {
-                // FIGlet rendering
-                val bannerText = FigletGenerator.render(_figletText.value, _selectedFigletFont.value)
-                val lines = bannerText.lines()
-                val rows = lines.size
-                val cols = lines.maxOfOrNull { it.length } ?: 1
-                val colors = Array(rows) { y ->
-                    IntArray(cols) { x ->
-                        when (_colorMode.value) {
-                            AsciiColorMode.GREEN_PHOSPHOR -> android.graphics.Color.parseColor("#3FB950")
-                            AsciiColorMode.AMBER_VINTAGE -> android.graphics.Color.parseColor("#D29922")
-                            AsciiColorMode.ANSI_TRUECOLOR -> android.graphics.Color.parseColor("#58A6FF")
-                            AsciiColorMode.CYBERPUNK_NEON -> if (x % 2 == 0) android.graphics.Color.parseColor("#58A6FF") else android.graphics.Color.parseColor("#FF007F")
+        recomputeJob?.cancel()
+        recomputeJob = viewModelScope.launch(Dispatchers.Default) {
+            _isAsyncComputing.value = true
+            try {
+                val result = if (_inputMode.value == MainInputMode.IMAGE) {
+                    val bmp = _sourceBitmap.value ?: SampleImageGenerator.generateCyberPortrait()
+                    AsciiConverter.convertBitmapAsync(
+                        bitmap = bmp,
+                        targetColumns = _targetColumns.value,
+                        ramp = _characterRamp.value,
+                        colorMode = _colorMode.value,
+                        dither = _ditherAlgorithm.value,
+                        contrast = _contrast.value,
+                        gamma = _gamma.value,
+                        invert = _invertLuminance.value,
+                        sourceTitle = _sourceFileName.value
+                    )
+                } else {
+                    // FIGlet rendering async
+                    val bannerText = FigletGenerator.renderAsync(_figletText.value, _selectedFigletFont.value)
+                    val lines = bannerText.lines()
+                    val rows = lines.size
+                    val cols = lines.maxOfOrNull { it.length } ?: 1
+                    val colors = Array(rows) { y ->
+                        IntArray(cols) { x ->
+                            when (_colorMode.value) {
+                                AsciiColorMode.GREEN_PHOSPHOR -> android.graphics.Color.parseColor("#3FB950")
+                                AsciiColorMode.AMBER_VINTAGE -> android.graphics.Color.parseColor("#D29922")
+                                AsciiColorMode.ANSI_TRUECOLOR -> android.graphics.Color.parseColor("#58A6FF")
+                                AsciiColorMode.CYBERPUNK_NEON -> if (x % 2 == 0) android.graphics.Color.parseColor("#58A6FF") else android.graphics.Color.parseColor("#FF007F")
+                            }
                         }
                     }
+                    AsciiMatrixResult(
+                        lines = lines,
+                        colors = colors,
+                        cols = cols,
+                        rows = rows,
+                        glyphCount = lines.sumOf { it.length },
+                        renderTimeMs = 4,
+                        sourceName = "${_figletText.value}.figlet",
+                        sourceResolution = "${cols}x${rows}"
+                    )
                 }
-                AsciiMatrixResult(
-                    lines = lines,
-                    colors = colors,
-                    cols = cols,
-                    rows = rows,
-                    glyphCount = lines.sumOf { it.length },
-                    renderTimeMs = 4,
-                    sourceName = "${_figletText.value}.figlet",
-                    sourceResolution = "${cols}x${rows}"
-                )
-            }
 
-            _asciiResult.value = result
-            updateDevCode()
+                _asciiResult.value = result
+                updateDevCode()
+            } finally {
+                _isAsyncComputing.value = false
+            }
         }
     }
 
     private fun updateDevCode() {
-        val matrix = _asciiResult.value
-        _generatedDevCode.value = CodeExporter.generateCode(
-            matrix = matrix,
-            language = _devLanguage.value,
-            structure = _devStructure.value,
-            includeAnsi = _includeAnsi.value,
-            includeCliFunction = _includeCli.value
-        )
+        devCodeJob?.cancel()
+        devCodeJob = viewModelScope.launch(Dispatchers.Default) {
+            val matrix = _asciiResult.value
+            val code = CodeExporter.generateCodeAsync(
+                matrix = matrix,
+                language = _devLanguage.value,
+                structure = _devStructure.value,
+                includeAnsi = _includeAnsi.value,
+                includeCliFunction = _includeCli.value
+            )
+            _generatedDevCode.value = code
+        }
     }
 
     // --- Core Computation & History Recording ---
 
     fun convertAndSaveToHistory(showToast: Boolean = true) {
-        viewModelScope.launch(Dispatchers.Default) {
-            val result = if (_inputMode.value == MainInputMode.IMAGE) {
-                val bmp = _sourceBitmap.value ?: SampleImageGenerator.generateCyberPortrait()
-                AsciiConverter.convertBitmap(
-                    bitmap = bmp,
-                    targetColumns = _targetColumns.value,
-                    ramp = _characterRamp.value,
-                    colorMode = _colorMode.value,
-                    dither = _ditherAlgorithm.value,
-                    contrast = _contrast.value,
-                    gamma = _gamma.value,
-                    invert = _invertLuminance.value,
-                    sourceTitle = _sourceFileName.value
-                )
-            } else {
-                val bannerText = FigletGenerator.render(_figletText.value, _selectedFigletFont.value)
-                val lines = bannerText.lines()
-                val rows = lines.size
-                val cols = lines.maxOfOrNull { it.length } ?: 1
-                val colors = Array(rows) { y ->
-                    IntArray(cols) { x ->
-                        when (_colorMode.value) {
-                            AsciiColorMode.GREEN_PHOSPHOR -> android.graphics.Color.parseColor("#3FB950")
-                            AsciiColorMode.AMBER_VINTAGE -> android.graphics.Color.parseColor("#D29922")
-                            AsciiColorMode.ANSI_TRUECOLOR -> android.graphics.Color.parseColor("#58A6FF")
-                            AsciiColorMode.CYBERPUNK_NEON -> if (x % 2 == 0) android.graphics.Color.parseColor("#58A6FF") else android.graphics.Color.parseColor("#FF007F")
+        recomputeJob?.cancel()
+        recomputeJob = viewModelScope.launch(Dispatchers.Default) {
+            _isAsyncComputing.value = true
+            try {
+                val result = if (_inputMode.value == MainInputMode.IMAGE) {
+                    val bmp = _sourceBitmap.value ?: SampleImageGenerator.generateCyberPortrait()
+                    AsciiConverter.convertBitmapAsync(
+                        bitmap = bmp,
+                        targetColumns = _targetColumns.value,
+                        ramp = _characterRamp.value,
+                        colorMode = _colorMode.value,
+                        dither = _ditherAlgorithm.value,
+                        contrast = _contrast.value,
+                        gamma = _gamma.value,
+                        invert = _invertLuminance.value,
+                        sourceTitle = _sourceFileName.value
+                    )
+                } else {
+                    val bannerText = FigletGenerator.renderAsync(_figletText.value, _selectedFigletFont.value)
+                    val lines = bannerText.lines()
+                    val rows = lines.size
+                    val cols = lines.maxOfOrNull { it.length } ?: 1
+                    val colors = Array(rows) { y ->
+                        IntArray(cols) { x ->
+                            when (_colorMode.value) {
+                                AsciiColorMode.GREEN_PHOSPHOR -> android.graphics.Color.parseColor("#3FB950")
+                                AsciiColorMode.AMBER_VINTAGE -> android.graphics.Color.parseColor("#D29922")
+                                AsciiColorMode.ANSI_TRUECOLOR -> android.graphics.Color.parseColor("#58A6FF")
+                                AsciiColorMode.CYBERPUNK_NEON -> if (x % 2 == 0) android.graphics.Color.parseColor("#58A6FF") else android.graphics.Color.parseColor("#FF007F")
+                            }
                         }
                     }
+                    AsciiMatrixResult(
+                        lines = lines,
+                        colors = colors,
+                        cols = cols,
+                        rows = rows,
+                        glyphCount = lines.sumOf { it.length },
+                        renderTimeMs = 4,
+                        sourceName = "${_figletText.value}.figlet",
+                        sourceResolution = "${cols}x${rows}"
+                    )
                 }
-                AsciiMatrixResult(
-                    lines = lines,
-                    colors = colors,
-                    cols = cols,
-                    rows = rows,
-                    glyphCount = lines.sumOf { it.length },
-                    renderTimeMs = 4,
-                    sourceName = "${_figletText.value}.figlet",
-                    sourceResolution = "${cols}x${rows}"
+
+                _asciiResult.value = result
+                updateDevCode()
+
+                // Automatically record conversion to Room database
+                val computedTitle = if (_inputMode.value == MainInputMode.TEXT) {
+                    "FIGlet_${_figletText.value.trim().ifBlank { "Banner" }.replace(" ", "_")}"
+                } else {
+                    result.sourceName.ifBlank { "Image_Art" }.replace(" ", "_")
+                }
+
+                val project = AsciiProjectEntity(
+                    title = computedTitle,
+                    asciiContent = result.fullText,
+                    colorHex = when (_colorMode.value) {
+                        AsciiColorMode.GREEN_PHOSPHOR -> "#3FB950"
+                        AsciiColorMode.AMBER_VINTAGE -> "#D29922"
+                        AsciiColorMode.ANSI_TRUECOLOR -> "#58A6FF"
+                        AsciiColorMode.CYBERPUNK_NEON -> "#BC8CFF"
+                    },
+                    cols = result.cols,
+                    rows = result.rows,
+                    glyphCount = result.glyphCount,
+                    category = if (_inputMode.value == MainInputMode.TEXT) "Bannière FIGlet" else if (_colorMode.value == AsciiColorMode.GREEN_PHOSPHOR || _colorMode.value == AsciiColorMode.AMBER_VINTAGE) "Monochrome" else "Couleurs ANSI",
+                    isFavorite = false,
+                    isFeatured = false,
+                    dateLabel = getFormattedDate(),
+                    tagSubtitle = if (_inputMode.value == MainInputMode.TEXT) "${_selectedFigletFont.value.label} • FIGlet Typo" else "${_characterRamp.value.name} • ${_ditherAlgorithm.value.label}",
+                    fileSizeFormatted = "${(result.fullText.length / 1024f).let { String.format("%.1f KB", it) }}"
                 )
-            }
+                repository.saveProject(project)
 
-            _asciiResult.value = result
-            updateDevCode()
-
-            // Automatically record conversion to Room database
-            val computedTitle = if (_inputMode.value == MainInputMode.TEXT) {
-                "FIGlet_${_figletText.value.trim().ifBlank { "Banner" }.replace(" ", "_")}"
-            } else {
-                result.sourceName.ifBlank { "Image_Art" }.replace(" ", "_")
-            }
-
-            val project = AsciiProjectEntity(
-                title = computedTitle,
-                asciiContent = result.fullText,
-                colorHex = when (_colorMode.value) {
-                    AsciiColorMode.GREEN_PHOSPHOR -> "#3FB950"
-                    AsciiColorMode.AMBER_VINTAGE -> "#D29922"
-                    AsciiColorMode.ANSI_TRUECOLOR -> "#58A6FF"
-                    AsciiColorMode.CYBERPUNK_NEON -> "#BC8CFF"
-                },
-                cols = result.cols,
-                rows = result.rows,
-                glyphCount = result.glyphCount,
-                category = if (_inputMode.value == MainInputMode.TEXT) "Bannière FIGlet" else if (_colorMode.value == AsciiColorMode.GREEN_PHOSPHOR || _colorMode.value == AsciiColorMode.AMBER_VINTAGE) "Monochrome" else "Couleurs ANSI",
-                isFavorite = false,
-                isFeatured = false,
-                dateLabel = getFormattedDate(),
-                tagSubtitle = if (_inputMode.value == MainInputMode.TEXT) "${_selectedFigletFont.value.label} • FIGlet Typo" else "${_characterRamp.value.name} • ${_ditherAlgorithm.value.label}",
-                fileSizeFormatted = "${(result.fullText.length / 1024f).let { String.format("%.1f KB", it) }}"
-            )
-            repository.saveProject(project)
-
-            if (showToast) {
-                withContext(Dispatchers.Main) {
-                    _toastMessage.value = "Conversion terminée & enregistrée dans la Galerie !"
+                if (showToast) {
+                    withContext(Dispatchers.Main) {
+                        _toastMessage.value = "Conversion terminée & enregistrée dans la Galerie !"
+                    }
                 }
+            } finally {
+                _isAsyncComputing.value = false
             }
         }
     }
@@ -659,13 +682,13 @@ class AsciiCraftViewModel(application: Application) : AndroidViewModel(applicati
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val matrix = _asciiResult.value
-                val bmp = ImageExporter.createArtworkBitmap(
+                val bmp = ImageExporter.createArtworkBitmapAsync(
                     matrix = matrix,
                     ambiance = _exportAmbiance.value,
                     includeWatermark = _exportWatermark.value,
                     scaleMultiplier = 3 // High resolution HD
                 )
-                val uri = ImageExporter.saveBitmapToGallery(getApplication(), bmp, matrix.sourceName)
+                val uri = ImageExporter.saveBitmapToGalleryAsync(getApplication(), bmp, matrix.sourceName)
                 withContext(Dispatchers.Main) {
                     if (uri != null) {
                         _toastMessage.value = "Image HD enregistrée dans Photos !"

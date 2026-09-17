@@ -3,7 +3,8 @@
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-purple?style=flat-square&logo=kotlin)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/Jetpack_Compose-Material_3-3FB950?style=flat-square&logo=android)](https://developer.android.com/jetpack/compose)
 [![Room Database](https://img.shields.io/badge/Room-SQLite_Offline-58A6FF?style=flat-square)](https://developer.android.com/training/data-storage/room)
-[![Design System](https://img.shields.io/badge/Design_System-Terminal_Cyber--Craft-D29922?style=flat-square)](https://m3.material.io)
+[![Coroutines Async](https://img.shields.io/badge/Coroutines-Asynchronous_Pipeline-BC8CFF?style=flat-square&logo=kotlin)](https://kotlinlang.org/docs/coroutines-overview.html)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=flat-square)](https://opensource.org/licenses/Apache-2.0)
 
 <p align="center">
   <img src="docs/screenshots/hero_banner.png" alt="AsciiArt Presentation Banner" width="100%" />
@@ -43,14 +44,16 @@
 
 ---
 
-## 2. Architecture & Stack Technique
+## 2. Architecture & Pipeline Asynchrone
 
-- **UI & Système de Design** : [Jetpack Compose](https://developer.android.com/jetpack/compose) avec Material Design 3 personnalisé (*Terminal Cyber-Craft OLED*).
-- **Architecture** : Clean Architecture & MVVM (Model-View-ViewModel) assurant une séparation stricte entre les moteurs de calcul et les couches de présentation.
-- **Moteur Rendu & Rasterisation** : `AsciiConverter` avec tramage matriciel 2D, interpolation gamma et `FigletGenerator` pour les polices matricielles.
-- **Gestion de la Concurrence** : Kotlin Coroutines & `StateFlow` réactifs pour un rendu temps réel fluide à 60 FPS.
-- **Persistance Locale** : [Room Database](https://developer.android.com/training/data-storage/room) (SQLite) avec DAO réactifs et initialisation pré-remplie.
-- **Gestion des Fichiers & Partage** : Android Storage Access Framework + `FileProvider` pour l'export sécurisé d'images et scripts.
+- **UI Réactive** : [Jetpack Compose](https://developer.android.com/jetpack/compose) avec Material Design 3 personnalisé (*Terminal Cyber-Craft OLED*).
+- **Moteur Asynchrone (Kotlin Coroutines & Flow)** : 
+  - Traitement d'image et tramage matriciel 2D en arrière-plan sur `Dispatchers.Default`.
+  - Annulation coopérative des calculs précédents lors de l'ajustement dynamique des curseurs.
+  - Export de fichiers et accès base de données Room non-bloquants sur `Dispatchers.IO`.
+  - Flux d'état réactifs (`StateFlow`) garantissant un rendu fluide à 60 FPS sans blocage de l'UI.
+- **Persistance Locale** : [Room Database](https://developer.android.com/training/data-storage/room) (SQLite) avec DAO réactifs.
+- **Gestion des Fichiers & Partage** : Android Storage Access Framework + `FileProvider` pour l'export sécurisé d'images HD et scripts.
 
 ---
 
@@ -69,3 +72,10 @@ Aucune configuration complexe ni clé d'API externe n'est requise. L'application
 - 🔒 **Zéro Télémétrie & Zéro Traçage** : Tout le traitement d'image et la génération de code s'effectuent localement sur l'appareil.
 - 🛡️ **Permissions Minimales (Least-Privilege)** : Utilisation du Photo Picker natif Android sans permission de stockage global requise.
 - ⚡ **Performance & Sobriété Énergétique** : Thème sombre optimisé pour les dalles OLED afin de minimiser la consommation de batterie.
+
+---
+
+## 5. Licence
+
+Ce projet est distribué sous licence open-source **Apache License 2.0**.  
+Consultez le fichier [`LICENSE`](LICENSE) pour plus d'informations.

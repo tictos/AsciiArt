@@ -4,10 +4,22 @@ import android.graphics.Color as AndroidColor
 import com.example.domain.model.AsciiMatrixResult
 import com.example.domain.model.ExportLanguage
 import com.example.domain.model.ExportStructure
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.util.zip.GZIPOutputStream
 
 object CodeExporter {
+
+    suspend fun generateCodeAsync(
+        matrix: AsciiMatrixResult,
+        language: ExportLanguage,
+        structure: ExportStructure,
+        includeAnsi: Boolean,
+        includeCliFunction: Boolean
+    ): String = withContext(Dispatchers.Default) {
+        generateCode(matrix, language, structure, includeAnsi, includeCliFunction)
+    }
 
     fun generateCode(
         matrix: AsciiMatrixResult,
